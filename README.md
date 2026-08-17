@@ -8,7 +8,7 @@ This is the hardware side of the project. The droid's voice brain — a fully
 local speech pipeline (STT → LLM → TTS) — lives in its own repo:
 [local-voice-assistant](https://github.com/Yoavigoda/local-voice-assistant).
 
-![BB-8 wiring]<img src="wiring.jpg" alt="BB-8 wiring" width="500">
+![BB-8 wiring](wiring.jpg)
 ##Hardware
 
 - **Arduino Nano ESP32** — main controller
