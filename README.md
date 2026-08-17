@@ -1,5 +1,4 @@
 # bb8-droid
-<img src="wiring.jpg" alt="BB-8 wiring" width="500">
 
 Building a BB-8 style ball droid from scratch — a motorized sphere with a
 magnetically-held head, driven by an internal two-wheel drive unit, with an
@@ -9,9 +8,8 @@ This is the hardware side of the project. The droid's voice brain — a fully
 local speech pipeline (STT → LLM → TTS) — lives in its own repo:
 [local-voice-assistant](https://github.com/Yoavigoda/local-voice-assistant).
 
-![BB-8 wiring](wiring.jpg)
-
-## Hardware
+![BB-8 wiring]<img src="wiring.jpg" alt="BB-8 wiring" width="500">
+##Hardware
 
 - **Arduino Nano ESP32** — main controller
 - **TB6612FNG** dual H-bridge motor driver
