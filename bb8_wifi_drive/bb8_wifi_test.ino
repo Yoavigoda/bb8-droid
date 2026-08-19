@@ -9,13 +9,32 @@ const uint8_t PIN_AIN1 = D4;
 const uint8_t PIN_AIN2 = D5;
 const uint8_t PIN_PWMB = D6;
 const uint8_t PIN_BIN1 = D7;
-const uint8_t PIN_BIN2 = D8; 
+const uint8_t PIN_BIN2 = D8;
+const uint8_t PIN_ENC_A_CH_A = D9; 
+const uint8_t PIN_ENC_A_CH_B = D10;
+volatile long encAcount = 0;
+void drive_f(uint8_t eng_num, int speed);
 enum MOTOR{
   MOTOR_A = 0,
   MOTOR_B = 1
 };
 WebServer server(80);
-
+void handleCount()
+{
+  String str_encAcount = String(encAcount);
+  server.send(200, "text/plain", str_encAcount);
+}
+void IRAM_ATTR encoderA_ISR()
+{
+  if(digitalRead(PIN_ENC_A_CH_A) == digitalRead(PIN_ENC_A_CH_B))
+  {
+    encAcount++;
+  }
+  else 
+  {
+    encAcount--;
+  }
+}
 void drive_f(uint8_t eng_num, int speed)
 {
   uint8_t in_pinpwmc = 0;
@@ -104,6 +123,9 @@ void setup() {
   pinMode(PIN_PWMB,OUTPUT);//5
   pinMode(PIN_BIN1,OUTPUT);//6
   pinMode(PIN_BIN2,OUTPUT);//7
+  pinMode(PIN_ENC_A_CH_A, INPUT);
+  pinMode(PIN_ENC_A_CH_B, INPUT);
+  attachInterrupt(digitalPinToInterrupt(PIN_ENC_A_CH_A), encoderA_ISR, CHANGE);
   analogWrite(PIN_PWMA, 0);
   analogWrite(PIN_PWMB, 0);
   digitalWrite(PIN_AIN1,LOW);//3
@@ -129,6 +151,7 @@ void setup() {
   server.on("/forward", HTTP_GET, handleForward);
   server.on("/stop", HTTP_GET, handleStop);
   server.on("/backword", HTTP_GET, handleBack);
+  server.on("/count", HTTP_GET, handleCount);
   server.onNotFound(handleNotFound);
   server.begin();
 
