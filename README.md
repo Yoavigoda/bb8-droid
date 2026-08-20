@@ -14,8 +14,10 @@ Built from scratch — electronics, firmware and mechanics.
 - Master power toggle
 - The board raises its own WiFi access point and serves a touch
   control page — the robot is driven from a phone browser
-- Quadrature encoder on motor A, counted by interrupt, readable live
-  from the control page
+- Quadrature encoders on both motors, counted by interrupt and readable
+  live from the control page
+- Closed-loop straight-line control: the two encoder counts are compared
+  every 50 ms and the motors corrected to match
 
 **Not yet built**
 - Encoder on motor B
@@ -97,6 +99,30 @@ Resolution is 12 counts per motor-shaft revolution. With the 100:1
 gearbox that is 1200 counts per wheel revolution, or about 6.4 counts
 per millimetre travelled on a 60 mm wheel.
 
+## Straight-line control
+
+Two nominally identical motors do not turn at the same rate for the same
+PWM command. Measured open-loop over three seconds, the two encoders
+differed by about 20% — enough to send the robot in a slow curve rather
+than a straight line.
+
+The HTTP handlers therefore no longer drive the motors. They set a
+target speed, and a control function running every 50 ms does the
+driving: it reads both counters, works out how far each motor moved
+since the last pass, takes the difference as the error, and applies a
+proportional correction — slowing the leading motor and speeding up the
+lagging one by the same amount, so the average speed is unchanged.
+
+With a gain of 0.5 the same three-second test gives 5397 against 5047,
+about 6.5% apart. A higher gain closes the gap further but overshoots
+noticeably on start-up. Final tuning is deferred until the drive units
+are mounted in the sphere, since the load will change the dynamics
+entirely.
+
+Timing uses `millis` rather than `delay`: the web server only checks for
+requests when `handleClient` is called, so nothing in the main loop may
+block.
+
 ## Motor directions
 
 Measured with both motors viewed from the same side, front shafts
@@ -118,6 +144,24 @@ bench directions push the shell the same way.
 Hold a drive button to move, release to stop. The encoder count
 updates twice a second, and the dot beside the title lights while the
 connection is alive.
+
+## Code layout
+
+The sketch is split across four `.ino` files. Arduino concatenates every
+`.ino` in the folder into one translation unit before compiling — the
+main file first, the rest alphabetically — so there are no includes
+between them.
+
+Two consequences worth knowing. Prototypes are only generated
+automatically for functions defined in the main file, so anything moved
+out needs a forward declaration added there by hand. And all globals
+live in the main file, since it is always concatenated first and is
+therefore the only place visible to every other file regardless of name.
+
+- main — includes, pin constants, globals, forward declarations, setup, loop
+- `motors.ino` — motor driving and the control loop
+- `encoders.ino` — the two interrupt handlers
+- `web.ino` — HTTP route handlers
 
 ## Repository
 
