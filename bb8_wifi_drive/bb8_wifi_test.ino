@@ -12,108 +12,32 @@ const uint8_t PIN_BIN1 = D7;
 const uint8_t PIN_BIN2 = D8;
 const uint8_t PIN_ENC_A_CH_A = D9; 
 const uint8_t PIN_ENC_A_CH_B = D10;
-volatile long encAcount = 0;
+const uint8_t PIN_ENC_B_CH_A = D11; 
+const uint8_t PIN_ENC_B_CH_B = D12;
+const unsigned long CONTROL_PERIOD_MS = 50;
+unsigned long last_control_ms = 0; 
+int base_speed = 0;
+volatile long enc_A_count = 0;
+volatile long enc_B_count = 0;
+long last_enc_A = 0;
+long last_enc_B = 0;
+const float KP = 0.5;
+
 void drive_f(uint8_t eng_num, int speed);
+void controlUpdate();
+void IRAM_ATTR encoderA_ISR();
+void IRAM_ATTR encoderB_ISR();
+void handleRoot();
+void handleForward();
+void handleBack();
+void handleStop();
+void handleCount();
+void handleNotFound();
 enum MOTOR{
   MOTOR_A = 0,
   MOTOR_B = 1
 };
 WebServer server(80);
-void handleCount()
-{
-  String str_encAcount = String(encAcount);
-  server.send(200, "text/plain", str_encAcount);
-}
-void IRAM_ATTR encoderA_ISR()
-{
-  if(digitalRead(PIN_ENC_A_CH_A) == digitalRead(PIN_ENC_A_CH_B))
-  {
-    encAcount++;
-  }
-  else 
-  {
-    encAcount--;
-  }
-}
-void drive_f(uint8_t eng_num, int speed)
-{
-  uint8_t in_pinpwmc = 0;
-  uint8_t in_pin1 = 0;
-  uint8_t in_pin2 = 0;
-  if(eng_num == MOTOR_A)
-  {
-    in_pinpwmc = PIN_PWMA;
-    in_pin1 = PIN_AIN1;
-    in_pin2 = PIN_AIN2;
-  }
-  else if(eng_num == MOTOR_B)
-  {
-    in_pinpwmc = PIN_PWMB;
-    in_pin1 = PIN_BIN1;
-    in_pin2 = PIN_BIN2;
-  }
-  else
-  {
-    return;
-  }
-
-  speed = constrain(speed, -255,255);
-  if(speed  >0)
-  {
-    digitalWrite(in_pin1, HIGH);
-    digitalWrite(in_pin2, LOW);
-
-  }
-  else if(speed < 0)
-  {
-    digitalWrite(in_pin2, HIGH);
-    digitalWrite(in_pin1, LOW);
-  }
-  else
-  {
-    digitalWrite(in_pin1, LOW);
-    digitalWrite(in_pin2, LOW);
-  }
-  analogWrite(in_pinpwmc, abs(speed)); 
-}
-
-void handleForward()
-{
-
-  server.send(200, "text/plain", "forward");
-  Serial.println("motor A forward");
-  drive_f(MOTOR_A, 150);
-  Serial.println("motor B forward");
-  drive_f(MOTOR_B, 150);  
-}
-
-void handleBack()
-{
-  server.send(200, "text/plain", "backword");
-  Serial.println("motor A backword");
-  drive_f(MOTOR_A, -150);
-  Serial.println("motor B backword");
-  drive_f(MOTOR_B, -150);  
-}
-
-void handleStop()
-{  
-  server.send(200, "text/plain", "stop");
-  Serial.println("motor A stop");
-  drive_f(MOTOR_A, 0);
-  Serial.println("motor B stop");
-  drive_f(MOTOR_B, 0);  
-}
-
-void handleRoot()
-{
-  server.send(200, "text/html",String(INDEX_HTML));
-}
-
-void handleNotFound()
-{
-  server.send(404, "text/plain","code 404");
-} 
 
 void setup() {
   pinMode(PIN_STBY,OUTPUT);//1
@@ -125,7 +49,10 @@ void setup() {
   pinMode(PIN_BIN2,OUTPUT);//7
   pinMode(PIN_ENC_A_CH_A, INPUT);
   pinMode(PIN_ENC_A_CH_B, INPUT);
+  pinMode(PIN_ENC_B_CH_A, INPUT);
+  pinMode(PIN_ENC_B_CH_B, INPUT);
   attachInterrupt(digitalPinToInterrupt(PIN_ENC_A_CH_A), encoderA_ISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PIN_ENC_B_CH_A), encoderB_ISR, CHANGE);
   analogWrite(PIN_PWMA, 0);
   analogWrite(PIN_PWMB, 0);
   digitalWrite(PIN_AIN1,LOW);//3
@@ -159,6 +86,12 @@ void setup() {
 
 void loop() {
   server.handleClient();
+  unsigned long cur_millis = millis();
+  if ((cur_millis - last_control_ms) >= CONTROL_PERIOD_MS)
+  {
+    last_control_ms = cur_millis;
+    controlUpdate();
+  }
 }
 
 

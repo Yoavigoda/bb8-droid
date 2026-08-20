@@ -17,9 +17,10 @@ h1{font-size:17px;font-weight:600;margin:0}
 #dot{width:9px;height:9px;border-radius:50%;background:var(--dim);transition:background .2s}
 #dot.ok{background:var(--amber)}
 .readout{background:var(--panel);border:1px solid var(--line);border-radius:14px;
- padding:14px 16px;display:flex;align-items:baseline;justify-content:space-between}
-.label{font-size:12px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase}
-#count{font:600 26px/1 ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+ padding:14px 16px;display:flex;justify-content:space-around}
+.readout>div{text-align:center;display:flex;flex-direction:column;gap:6px}
+.label{font-size:11px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase}
+#countA,#countB{font:600 26px/1 ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
 .pad{display:flex;flex-direction:column;gap:12px;flex:1}
 button{font:600 18px/1 inherit;color:var(--text);background:var(--panel);
  border:1px solid var(--line);border-radius:16px;width:100%;flex:1;min-height:84px;
@@ -41,8 +42,8 @@ button:active{transform:scale(.985)}
 </header>
 
 <div class="readout">
-  <span class="label">Encoder A</span>
-  <span id="count">--</span>
+  <div><span class="label">Enc A</span><span id="countA">--</span></div>
+  <div><span class="label">Enc B</span><span id="countB">--</span></div>
 </div>
 
 <div class="pad">
@@ -55,7 +56,8 @@ button:active{transform:scale(.985)}
 
 <script>
 var dot = document.getElementById('dot');
-var countEl = document.getElementById('count');
+var aEl = document.getElementById('countA');
+var bEl = document.getElementById('countB');
 
 function send(route){
   return fetch(route)
@@ -75,7 +77,12 @@ document.getElementById('stopBtn').addEventListener('click', function(){ send('/
 setInterval(function(){
   fetch('/count')
     .then(function(r){ return r.text(); })
-    .then(function(t){ countEl.textContent = t.trim(); dot.classList.add('ok'); })
+    .then(function(t){
+      var p = t.trim().split(',');
+      aEl.textContent = p[0];
+      bEl.textContent = p[1] !== undefined ? p[1] : '--';
+      dot.classList.add('ok');
+    })
     .catch(function(){ dot.classList.remove('ok'); });
 }, 500);
 </script>
